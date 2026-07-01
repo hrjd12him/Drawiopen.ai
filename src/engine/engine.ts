@@ -63,6 +63,7 @@ export class Engine {
     this.toolManager.register(new SelectionTool(this));
     this.toolManager.register(new RectangleTool(this));
     this.toolManager.setActiveTool("selection");
+    this.commandManager.subscribe(() => this.syncSelectionWithScene());
     this.registerDefaultShortcuts();
   }
 
@@ -120,5 +121,29 @@ export class Engine {
       this.anchorState.setHoveredAnchor(null);
       this.canvas.style.cursor = "default";
     });
+
+    this.keyboardManager.registerShortcut("ctrl+z", () => {
+      this.commandManager.undo();
+    });
+
+    this.keyboardManager.registerShortcut("ctrl+y", () => {
+      this.commandManager.redo();
+    });
+
+    this.keyboardManager.registerShortcut("ctrl+shift+z", () => {
+      this.commandManager.redo();
+    });
+  }
+
+  private syncSelectionWithScene() {
+    const selected = this.selection.selectedShape;
+    if (!selected) {
+      return;
+    }
+
+    const stillExists = this.scene.nodes.some((node) => node.id === selected.id);
+    if (!stillExists) {
+      this.selection.setSelectedShape(null);
+    }
   }
 }
