@@ -1,108 +1,56 @@
-import { camera } from "./camera";
-import { render } from "./renderer";
-import { shapes } from "./scene";
-import { hitTest } from "./hitTest";
-import { selectedShape, setSelectedShape } from "./selection";
+import { createCamera, type Camera } from "./Camera";
+import { createScene, type Scene } from "./Scene";
+import { render } from "./Renderer";
+import { setupInput } from "./Input";
+import { createSelection, type Selection } from "./Selection";
+import { createResizeState, type ResizeState } from "./resize";
+import { createAnchorState, type AnchorState } from "./anchors";
+import {
+  createConnectionPreview,
+  type ConnectionPreview,
+} from "./connectionPreview";
 
-export function createEngine(canvas: HTMLCanvasElement) {
-  const ctx = canvas.getContext("2d");
+export class Engine {
+  public readonly camera: Camera;
+  public readonly scene: Scene;
+  public readonly selection: Selection;
+  public readonly resizeState: ResizeState;
+  public readonly anchorState: AnchorState;
+  public readonly connectionPreview: ConnectionPreview;
+  public readonly canvas: HTMLCanvasElement;
+  public readonly ctx: CanvasRenderingContext2D;
 
-  if (!ctx) throw new Error("Canvas Context Missing");
+  constructor(canvas: HTMLCanvasElement) {
+    this.canvas = canvas;
 
-  const renderCtx = ctx;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      throw new Error("Canvas Context Missing");
+    }
 
-  resize();
-
-  window.addEventListener("resize", resize);
-
-  function resize() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    this.ctx = ctx;
+    this.camera = createCamera();
+    this.scene = createScene();
+    this.selection = createSelection();
+    this.resizeState = createResizeState();
+    this.anchorState = createAnchorState();
+    this.connectionPreview = createConnectionPreview();
   }
 
-  setupPan();
-
-  setupZoom();
-
-  function loop() {
-    render(renderCtx, canvas, shapes, camera);
-
-    requestAnimationFrame(loop);
+  public start() {
+    this.resize();
+    setupInput(this.canvas, this);
+    window.addEventListener("resize", () => this.resize());
+    this.loop();
   }
 
-  loop();
+  private loop = () => {
+    render(this.ctx, this.canvas, this.scene, this.camera, this.selection);
+    requestAnimationFrame(this.loop);
+  };
 
-  function setupZoom() {
-    canvas.addEventListener("wheel", (e) => {
-      e.preventDefault();
-
-      if (e.deltaY < 0) camera.zoom *= 1.1;
-      else camera.zoom /= 1.1;
-    });
+  private resize() {
+    this.canvas.width = window.innerWidth;
+    this.canvas.height = window.innerHeight;
   }
-
-  function setupPan() {
-
-    let draggingCamera = false;
-    let draggingShape = false;
-
-    let lastX = 0;
-    let lastY = 0;
-
-    canvas.addEventListener("mousedown", e => {
-
-        lastX = e.clientX;
-        lastY = e.clientY;
-
-        const shape = hitTest(
-            e.clientX,
-            e.clientY
-        );
-
-        if (shape) {
-
-            setSelectedShape(shape);
-            draggingShape = true;
-
-        } else {
-
-            setSelectedShape(null);
-            draggingCamera = true;
-
-        }
-
-    });
-
-    canvas.addEventListener("mouseup", () => {
-
-        draggingCamera = false;
-        draggingShape = false;
-
-    });
-
-    canvas.addEventListener("mousemove", e => {
-
-        const dx = e.clientX - lastX;
-        const dy = e.clientY - lastY;
-
-        if (draggingShape && selectedShape) {
-
-            selectedShape.x += dx / camera.zoom;
-            selectedShape.y += dy / camera.zoom;
-
-        }
-
-        if (draggingCamera) {
-
-            camera.x -= dx / camera.zoom;
-            camera.y -= dy / camera.zoom;
-
-        }
-
-        lastX = e.clientX;
-        lastY = e.clientY;
-
-    });
-
-}
 }

@@ -1,7 +1,19 @@
 import type { Shape } from "./types";
 
-export let selectedShape: Shape | null = null;
+export interface Selection {
+  selectedShape: Shape | null;
+  setSelectedShape(shape: Shape | null): void;
+}
 
-export function setSelectedShape(shape: Shape | null) {
-    selectedShape = shape;
+export function createSelection(): Selection {
+  let selectedShape: Shape | null = null;
+
+  return {
+    get selectedShape() {
+      return selectedShape;
+    },
+    setSelectedShape(shape: Shape | null) {
+      selectedShape = shape;
+    },
+  };
 }
