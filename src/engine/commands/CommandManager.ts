@@ -57,6 +57,11 @@ export class CommandManager {
     return this.redoStack.length > 0;
   }
 
+  public clearHistory() {
+    this.undoStack.length = 0;
+    this.redoStack.length = 0;
+  }
+
   private notify(event: CommandManagerEvent) {
     for (const listener of this.listeners) {
       listener(event);
