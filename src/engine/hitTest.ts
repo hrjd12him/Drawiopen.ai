@@ -10,8 +10,8 @@ export function hitTest(
 ) {
   const point = screenToWorld(screenX, screenY, camera);
 
-  for (let i = scene.length - 1; i >= 0; i--) {
-    const shape = scene[i];
+  for (let i = scene.nodes.length - 1; i >= 0; i--) {
+    const shape = scene.nodes[i];
 
     if (
       point.x >= shape.x &&

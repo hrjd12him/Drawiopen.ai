@@ -2,6 +2,13 @@ import type { Engine } from "./Engine";
 import { hitTest } from "./HitTest";
 import { applyResize } from "./resize";
 import { getResizeHandleAtPoint, getResizeHandleCursor } from "./handles";
+import { getConnectionAnchors } from "./anchors";
+import { hitTestAnchor } from "./anchorHitTest";
+import {
+  endConnectionPreview,
+  startConnectionPreview,
+  updateConnectionPreview,
+} from "./connectionInteraction";
 
 export function setupInput(canvas: HTMLCanvasElement, engine: Engine) {
   let draggingCamera = false;
@@ -34,6 +41,15 @@ export function setupInput(canvas: HTMLCanvasElement, engine: Engine) {
         resizing = true;
         return;
       }
+
+      const anchors = getConnectionAnchors(selected, engine.camera);
+      const anchor = anchors.find((item) =>
+        hitTestAnchor(e.clientX, e.clientY, item),
+      );
+      if (anchor) {
+        startConnectionPreview(engine, e.clientX, e.clientY);
+        return;
+      }
     }
 
     const shape = hitTest(e.clientX, e.clientY, engine.camera, engine.scene);
@@ -52,13 +68,16 @@ export function setupInput(canvas: HTMLCanvasElement, engine: Engine) {
     draggingShape = false;
     resizing = false;
     engine.resizeState.activeHandle = null;
+    endConnectionPreview(engine);
   });
 
   canvas.addEventListener("mousemove", (e) => {
     const dx = e.clientX - lastX;
     const dy = e.clientY - lastY;
 
-    if (
+    if (engine.connectionPreview.active) {
+      updateConnectionPreview(engine, e.clientX, e.clientY);
+    } else if (
       resizing &&
       engine.selection.selectedShape &&
       engine.resizeState.activeHandle
@@ -98,8 +117,19 @@ export function setupInput(canvas: HTMLCanvasElement, engine: Engine) {
         canvas.style.cursor = getResizeHandleCursor(handle);
         return;
       }
+
+      const anchors = getConnectionAnchors(selected, engine.camera);
+      const hoveredAnchor = anchors.find((anchor) =>
+        hitTestAnchor(e.clientX, e.clientY, anchor),
+      );
+      if (hoveredAnchor) {
+        engine.anchorState.setHoveredAnchor(hoveredAnchor);
+        canvas.style.cursor = "crosshair";
+        return;
+      }
     }
 
+    engine.anchorState.setHoveredAnchor(null);
     canvas.style.cursor = "default";
   });
 
