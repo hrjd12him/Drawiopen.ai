@@ -1,4 +1,4 @@
-export type ShapeType = "rectangle";
+export type ShapeType = string;
 
 export interface Node {
   id: string;
@@ -18,6 +18,11 @@ export interface Edge {
   targetSide: "TOP" | "RIGHT" | "BOTTOM" | "LEFT";
   color?: string;
   width?: number;
+}
+
+export interface ClipboardData {
+  nodes: Node[];
+  edges: Edge[];
 }
 
 export type Shape = Node;

@@ -5,7 +5,10 @@ import type { Selection } from "./Selection";
 import { getResizeHandles } from "./handles";
 import type { Scene } from "./Scene";
 import { getConnectionAnchors } from "./anchors";
-import { drawPreviewConnector } from "./previewRenderer";
+import { drawPreviewConnector, drawShapePreview } from "./previewRenderer";
+import type { ShapePreview } from "./creation/ShapePreview";
+import type { ShapeRegistry } from "./shapes/ShapeRegistry";
+import type { ConnectionPreview } from "./connectionPreview";
 
 export function render(
   ctx: CanvasRenderingContext2D,
@@ -13,56 +16,31 @@ export function render(
   scene: Scene,
   camera: Camera,
   selection: Selection,
-  preview?: {
-    active: boolean;
-    sourceAnchor: { x: number; y: number } | null;
-    mouseWorldPosition: { x: number; y: number } | null;
-  },
+  preview: ConnectionPreview,
+  shapePreview: ShapePreview,
+  shapeRegistry: ShapeRegistry,
 ) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   drawGrid(ctx, canvas, camera);
 
   for (const edge of scene.edges) {
-    drawEdge(ctx, edge, scene.nodes, camera);
+    drawEdge(ctx, edge, scene.nodes, camera, shapeRegistry);
   }
 
   for (const node of scene.nodes) {
-    switch (node.type) {
-      case "rectangle":
-        drawRectangle(ctx, node, camera, selection);
-        break;
-    }
+    shapeRegistry.get(node.type).render(ctx, node, camera);
   }
+
+  drawShapePreview(ctx, shapePreview, camera);
 
   if (selection.selectedShape) {
-    drawSelectionBox(ctx, selection.selectedShape, camera);
-    drawResizeHandles(ctx, selection.selectedShape, camera);
-    drawAnchors(ctx, selection.selectedShape, camera);
+    drawSelectionBox(ctx, selection.selectedShape, camera, shapeRegistry);
+    drawResizeHandles(ctx, selection.selectedShape, camera, shapeRegistry);
+    drawAnchors(ctx, selection.selectedShape, camera, shapeRegistry);
   }
 
-  if (preview) {
-    drawPreviewConnector(ctx, preview as never, camera);
-  }
-}
-
-function drawRectangle(
-  ctx: CanvasRenderingContext2D,
-  shape: Shape,
-  camera: Camera,
-  selection: Selection,
-) {
-  void selection;
-  const pos = worldToScreen(shape.x, shape.y, camera);
-
-  ctx.fillStyle = shape.color;
-
-  ctx.fillRect(
-    pos.x,
-    pos.y,
-    shape.width * camera.zoom,
-    shape.height * camera.zoom,
-  );
+  drawPreviewConnector(ctx, preview, camera);
 }
 
 function drawEdge(
@@ -78,6 +56,7 @@ function drawEdge(
   },
   nodes: Shape[],
   camera: Camera,
+  shapeRegistry: ShapeRegistry,
 ) {
   const fromNode = nodes.find((node) => node.id === edge.sourceNodeId);
   const toNode = nodes.find((node) => node.id === edge.targetNodeId);
@@ -86,14 +65,17 @@ function drawEdge(
     return;
   }
 
+  const fromBounds = shapeRegistry.get(fromNode.type).getBounds(fromNode);
+  const toBounds = shapeRegistry.get(toNode.type).getBounds(toNode);
+
   const fromPos = worldToScreen(
-    fromNode.x + fromNode.width / 2,
-    fromNode.y + fromNode.height / 2,
+    fromBounds.x + fromBounds.width / 2,
+    fromBounds.y + fromBounds.height / 2,
     camera,
   );
   const toPos = worldToScreen(
-    toNode.x + toNode.width / 2,
-    toNode.y + toNode.height / 2,
+    toBounds.x + toBounds.width / 2,
+    toBounds.y + toBounds.height / 2,
     camera,
   );
 
@@ -109,8 +91,10 @@ function drawSelectionBox(
   ctx: CanvasRenderingContext2D,
   shape: Shape,
   camera: Camera,
+  shapeRegistry: ShapeRegistry,
 ) {
-  const pos = worldToScreen(shape.x, shape.y, camera);
+  const bounds = shapeRegistry.get(shape.type).getBounds(shape);
+  const pos = worldToScreen(bounds.x, bounds.y, camera);
 
   ctx.strokeStyle = "#1976d2";
   ctx.lineWidth = 1;
@@ -118,8 +102,8 @@ function drawSelectionBox(
   ctx.strokeRect(
     pos.x,
     pos.y,
-    shape.width * camera.zoom,
-    shape.height * camera.zoom,
+    bounds.width * camera.zoom,
+    bounds.height * camera.zoom,
   );
   ctx.setLineDash([]);
 }
@@ -128,8 +112,9 @@ function drawResizeHandles(
   ctx: CanvasRenderingContext2D,
   shape: Shape,
   camera: Camera,
+  shapeRegistry: ShapeRegistry,
 ) {
-  const handles = getResizeHandles(shape, camera);
+  const handles = getResizeHandles(shape, camera, shapeRegistry);
 
   ctx.fillStyle = "#ffffff";
   ctx.strokeStyle = "#1976d2";
@@ -147,8 +132,9 @@ function drawAnchors(
   ctx: CanvasRenderingContext2D,
   shape: Shape,
   camera: Camera,
+  shapeRegistry: ShapeRegistry,
 ) {
-  const anchors = getConnectionAnchors(shape, camera);
+  const anchors = getConnectionAnchors(shape, camera, shapeRegistry);
 
   for (const anchor of anchors) {
     ctx.beginPath();

@@ -1,5 +1,6 @@
 import type { Shape } from "./types";
 import type { ResizeHandle } from "./handles";
+import type { ShapeRegistry } from "./shapes/ShapeRegistry";
 
 export interface ResizeState {
   activeHandle: ResizeHandle | null;
@@ -28,56 +29,7 @@ export function applyResize(
   handle: ResizeHandle,
   dx: number,
   dy: number,
+  shapeRegistry: ShapeRegistry,
 ) {
-  const next = { ...shape };
-
-  switch (handle) {
-    case "NW": {
-      next.x += dx;
-      next.y += dy;
-      next.width -= dx;
-      next.height -= dy;
-      break;
-    }
-    case "N": {
-      next.y += dy;
-      next.height -= dy;
-      break;
-    }
-    case "NE": {
-      next.y += dy;
-      next.width += dx;
-      next.height -= dy;
-      break;
-    }
-    case "W": {
-      next.x += dx;
-      next.width -= dx;
-      break;
-    }
-    case "E": {
-      next.width += dx;
-      break;
-    }
-    case "SW": {
-      next.x += dx;
-      next.width -= dx;
-      next.height += dy;
-      break;
-    }
-    case "S": {
-      next.height += dy;
-      break;
-    }
-    case "SE": {
-      next.width += dx;
-      next.height += dy;
-      break;
-    }
-  }
-
-  if (next.width < 20) next.width = 20;
-  if (next.height < 20) next.height = 20;
-
-  Object.assign(shape, next);
+  shapeRegistry.get(shape.type).resize(shape, handle, dx, dy);
 }
