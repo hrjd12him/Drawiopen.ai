@@ -20,4 +20,9 @@ export interface Edge {
   width?: number;
 }
 
+export interface ClipboardData {
+  nodes: Node[];
+  edges: Edge[];
+}
+
 export type Shape = Node;

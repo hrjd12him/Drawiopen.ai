@@ -12,15 +12,13 @@ import {
   createConnectionPreview,
   type ConnectionPreview,
 } from "./connectionPreview";
-import {
-  createShapePreview,
-  type ShapePreview,
-} from "./creation/ShapePreview";
+import { createShapePreview, type ShapePreview } from "./creation/ShapePreview";
 import { RectangleShape } from "./shapes/RectangleShape";
 import { ShapeRegistry } from "./shapes/ShapeRegistry";
 import { RectangleTool } from "./tools/RectangleTool";
 import { SelectionTool } from "./tools/SelectionTool";
 import { ToolManager } from "./tools/ToolManager";
+import { ClipboardManager } from "./clipboard/ClipboardManager";
 
 export class Engine {
   public readonly camera: Camera;
@@ -34,6 +32,7 @@ export class Engine {
   public readonly commandManager: CommandManager;
   public readonly keyboardManager: KeyboardManager;
   public readonly toolManager: ToolManager;
+  public readonly clipboardManager: ClipboardManager;
   public readonly canvas: HTMLCanvasElement;
   public readonly ctx: CanvasRenderingContext2D;
 
@@ -57,6 +56,7 @@ export class Engine {
     this.commandManager = new CommandManager();
     this.keyboardManager = new KeyboardManager();
     this.toolManager = new ToolManager();
+    this.clipboardManager = new ClipboardManager();
 
     this.shapeRegistry.register(new RectangleShape());
 
@@ -141,7 +141,9 @@ export class Engine {
       return;
     }
 
-    const stillExists = this.scene.nodes.some((node) => node.id === selected.id);
+    const stillExists = this.scene.nodes.some(
+      (node) => node.id === selected.id,
+    );
     if (!stillExists) {
       this.selection.setSelectedShape(null);
     }
