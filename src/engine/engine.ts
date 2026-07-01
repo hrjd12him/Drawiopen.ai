@@ -21,6 +21,7 @@ import { ToolManager } from "./tools/ToolManager";
 import { ClipboardManager } from "./clipboard/ClipboardManager";
 import { CopyNodeAction } from "./actions/CopyNodeAction";
 import { PasteNodeAction } from "./actions/PasteNodeAction";
+import { DuplicateNodeAction } from "./actions/DuplicateNodeAction";
 
 export class Engine {
   public readonly camera: Camera;
@@ -99,6 +100,7 @@ export class Engine {
   private registerDefaultShortcuts() {
     const copyAction = new CopyNodeAction(this);
     const pasteAction = new PasteNodeAction(this);
+    const duplicateAction = new DuplicateNodeAction(this);
 
     this.keyboardManager.registerShortcut("escape", () => {
       this.toolManager.cancelActiveTool();
@@ -133,6 +135,10 @@ export class Engine {
 
     this.keyboardManager.registerShortcut("ctrl+v", () => {
       pasteAction.execute();
+    });
+
+    this.keyboardManager.registerShortcut("ctrl+d", () => {
+      duplicateAction.execute();
     });
 
     this.keyboardManager.registerShortcut("ctrl+z", () => {
