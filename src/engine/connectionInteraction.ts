@@ -1,8 +1,8 @@
 import type { Engine } from "./Engine";
 import { hitTestAnchor } from "./anchorHitTest";
 import { getConnectionAnchors } from "./anchors";
+import { CreateEdgeCommand } from "./commands/CreateEdgeCommand";
 import { screenToWorld } from "./Coordinates";
-import { createEdge } from "./edgeService";
 
 export function startConnectionPreview(
   engine: Engine,
@@ -14,7 +14,11 @@ export function startConnectionPreview(
     return;
   }
 
-  const anchors = getConnectionAnchors(selected, engine.camera);
+  const anchors = getConnectionAnchors(
+    selected,
+    engine.camera,
+    engine.shapeRegistry,
+  );
   const anchor = anchors.find((item) => hitTestAnchor(screenX, screenY, item));
 
   if (!anchor) {
@@ -45,7 +49,11 @@ export function updateConnectionPreview(
     return;
   }
 
-  const anchors = getConnectionAnchors(selected, engine.camera);
+  const anchors = getConnectionAnchors(
+    selected,
+    engine.camera,
+    engine.shapeRegistry,
+  );
   const targetAnchor = anchors.find((item) =>
     hitTestAnchor(screenX, screenY, item),
   );
@@ -62,17 +70,15 @@ export function endConnectionPreview(engine: Engine) {
   const targetAnchor = engine.connectionPreview.targetAnchor;
 
   if (sourceNodeId && sourceAnchor && targetAnchor) {
-    const edge = createEdge(
-      engine.scene,
-      sourceNodeId,
-      sourceAnchor.side,
-      targetAnchor.nodeId,
-      targetAnchor.side,
+    engine.commandManager.execute(
+      new CreateEdgeCommand(
+        engine.scene,
+        sourceNodeId,
+        sourceAnchor.side,
+        targetAnchor.nodeId,
+        targetAnchor.side,
+      ),
     );
-
-    if (edge) {
-      engine.scene.edges.push(edge);
-    }
   }
 
   engine.connectionPreview.cancel();

@@ -1,6 +1,7 @@
 import type { Camera } from "./Camera";
 import { worldToScreen } from "./Coordinates";
 import type { Shape } from "./types";
+import type { ShapeRegistry } from "./shapes/ShapeRegistry";
 
 export type ResizeHandle = "NW" | "N" | "NE" | "W" | "E" | "SW" | "S" | "SE";
 
@@ -24,10 +25,15 @@ export function getResizeHandleCursor(handle: ResizeHandle): string {
   }
 }
 
-export function getResizeHandles(shape: Shape, camera: Camera) {
-  const pos = worldToScreen(shape.x, shape.y, camera);
-  const width = shape.width * camera.zoom;
-  const height = shape.height * camera.zoom;
+export function getResizeHandles(
+  shape: Shape,
+  camera: Camera,
+  shapeRegistry: ShapeRegistry,
+) {
+  const bounds = shapeRegistry.get(shape.type).getBounds(shape);
+  const pos = worldToScreen(bounds.x, bounds.y, camera);
+  const width = bounds.width * camera.zoom;
+  const height = bounds.height * camera.zoom;
 
   return {
     NW: { x: pos.x, y: pos.y },
@@ -46,8 +52,9 @@ export function getResizeHandleAtPoint(
   screenY: number,
   shape: Shape,
   camera: Camera,
+  shapeRegistry: ShapeRegistry,
 ): ResizeHandle | null {
-  const handles = getResizeHandles(shape, camera);
+  const handles = getResizeHandles(shape, camera, shapeRegistry);
 
   for (const [name, point] of Object.entries(handles) as Array<
     [ResizeHandle, { x: number; y: number }]

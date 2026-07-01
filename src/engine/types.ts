@@ -1,4 +1,4 @@
-export type ShapeType = "rectangle";
+export type ShapeType = string;
 
 export interface Node {
   id: string;
