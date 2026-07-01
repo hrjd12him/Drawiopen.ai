@@ -1,7 +1,8 @@
 import "./style.css";
 
-import { createEngine } from "./engine/engine";
+import { Engine } from "./engine/Engine";
 
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 
-createEngine(canvas);
+const engine = new Engine(canvas);
+engine.start();

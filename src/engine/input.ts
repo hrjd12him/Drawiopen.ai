@@ -1,87 +1,116 @@
-import { camera } from "./camera";
-import { hitTest } from "./hitTest";
-import { selectedShape, setSelectedShape } from "./selection";
+import type { Engine } from "./Engine";
+import { hitTest } from "./HitTest";
+import { applyResize } from "./resize";
+import { getResizeHandleAtPoint, getResizeHandleCursor } from "./handles";
 
-export function setupInput(canvas: HTMLCanvasElement) {
+export function setupInput(canvas: HTMLCanvasElement, engine: Engine) {
+  let draggingCamera = false;
+  let draggingShape = false;
+  let resizing = false;
 
-    let draggingCamera = false;
-    let draggingShape = false;
+  let lastX = 0;
+  let lastY = 0;
 
-    let lastX = 0;
-    let lastY = 0;
+  canvas.addEventListener("mousedown", (e) => {
+    lastX = e.clientX;
+    lastY = e.clientY;
 
-    canvas.addEventListener("mousedown", (e) => {
+    const selected = engine.selection.selectedShape;
+    if (selected) {
+      const handle = getResizeHandleAtPoint(
+        e.clientX,
+        e.clientY,
+        selected,
+        engine.camera,
+      );
+      if (handle) {
+        engine.resizeState.activeHandle = handle;
+        engine.resizeState.startX = e.clientX;
+        engine.resizeState.startY = e.clientY;
+        engine.resizeState.startWidth = selected.width;
+        engine.resizeState.startHeight = selected.height;
+        engine.resizeState.startXPos = selected.x;
+        engine.resizeState.startYPos = selected.y;
+        resizing = true;
+        return;
+      }
+    }
 
-        lastX = e.clientX;
-        lastY = e.clientY;
+    const shape = hitTest(e.clientX, e.clientY, engine.camera, engine.scene);
 
-        const shape = hitTest(
-            e.clientX,
-            e.clientY
-        );
+    if (shape) {
+      engine.selection.setSelectedShape(shape);
+      draggingShape = true;
+    } else {
+      engine.selection.setSelectedShape(null);
+      draggingCamera = true;
+    }
+  });
 
-        if (shape) {
+  window.addEventListener("mouseup", () => {
+    draggingCamera = false;
+    draggingShape = false;
+    resizing = false;
+    engine.resizeState.activeHandle = null;
+  });
 
-            setSelectedShape(shape);
-            draggingShape = true;
+  canvas.addEventListener("mousemove", (e) => {
+    const dx = e.clientX - lastX;
+    const dy = e.clientY - lastY;
 
-        }
-        else {
+    if (
+      resizing &&
+      engine.selection.selectedShape &&
+      engine.resizeState.activeHandle
+    ) {
+      const selected = engine.selection.selectedShape;
+      const handle = engine.resizeState.activeHandle;
+      applyResize(
+        selected,
+        handle,
+        dx / engine.camera.zoom,
+        dy / engine.camera.zoom,
+      );
+    } else if (draggingShape && engine.selection.selectedShape) {
+      engine.selection.selectedShape.x += dx / engine.camera.zoom;
+      engine.selection.selectedShape.y += dy / engine.camera.zoom;
+    }
 
-            setSelectedShape(null);
-            draggingCamera = true;
+    if (draggingCamera) {
+      engine.camera.x -= dx / engine.camera.zoom;
+      engine.camera.y -= dy / engine.camera.zoom;
+    }
 
-        }
+    lastX = e.clientX;
+    lastY = e.clientY;
+  });
 
-    });
+  canvas.addEventListener("mousemove", (e) => {
+    const selected = engine.selection.selectedShape;
+    if (selected) {
+      const handle = getResizeHandleAtPoint(
+        e.clientX,
+        e.clientY,
+        selected,
+        engine.camera,
+      );
+      if (handle) {
+        canvas.style.cursor = getResizeHandleCursor(handle);
+        return;
+      }
+    }
 
-    window.addEventListener("mouseup", () => {
+    canvas.style.cursor = "default";
+  });
 
-        draggingCamera = false;
-        draggingShape = false;
+  canvas.addEventListener("wheel", (e) => {
+    e.preventDefault();
 
-    });
+    const zoomFactor = 1.1;
 
-    canvas.addEventListener("mousemove", (e) => {
+    if (e.deltaY < 0) engine.camera.zoom *= zoomFactor;
+    else engine.camera.zoom /= zoomFactor;
 
-        const dx = e.clientX - lastX;
-        const dy = e.clientY - lastY;
-
-        if (draggingShape && selectedShape) {
-
-            selectedShape.x += dx / camera.zoom;
-            selectedShape.y += dy / camera.zoom;
-
-        }
-
-        if (draggingCamera) {
-
-            camera.x -= dx / camera.zoom;
-            camera.y -= dy / camera.zoom;
-
-        }
-
-        lastX = e.clientX;
-        lastY = e.clientY;
-
-    });
-
-    canvas.addEventListener("wheel", (e) => {
-
-        e.preventDefault();
-
-        const zoomFactor = 1.1;
-
-        if (e.deltaY < 0)
-            camera.zoom *= zoomFactor;
-        else
-            camera.zoom /= zoomFactor;
-
-        camera.zoom = Math.max(
-            0.2,
-            Math.min(camera.zoom, 5)
-        );
-
-    });
-
+    engine.camera.zoom = Math.max(0.2, Math.min(engine.camera.zoom, 5));
+  });
 }

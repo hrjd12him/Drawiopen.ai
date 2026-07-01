@@ -1,4 +1,4 @@
-import type { Camera } from "./camera";
+import type { Camera } from "./Camera";
 
 export function worldToScreen(x: number, y: number, camera: Camera) {
   return {
