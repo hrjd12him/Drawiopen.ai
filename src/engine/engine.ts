@@ -23,6 +23,7 @@ import { CopyNodeAction } from "./actions/CopyNodeAction";
 import { PasteNodeAction } from "./actions/PasteNodeAction";
 import { DuplicateNodeAction } from "./actions/DuplicateNodeAction";
 import { DocumentManager } from "./DocumentManager";
+import { FileService } from "./FileService";
 
 export class Engine {
   public readonly camera: Camera;
@@ -38,6 +39,7 @@ export class Engine {
   public readonly toolManager: ToolManager;
   public readonly clipboardManager: ClipboardManager;
   public readonly documentManager: DocumentManager;
+  public readonly fileService: FileService;
   public readonly canvas: HTMLCanvasElement;
   public readonly ctx: CanvasRenderingContext2D;
 
@@ -63,6 +65,7 @@ export class Engine {
     this.toolManager = new ToolManager();
     this.clipboardManager = new ClipboardManager();
     this.documentManager = new DocumentManager(this.scene);
+    this.fileService = new FileService(this, this.documentManager);
 
     this.shapeRegistry.register(new RectangleShape());
 
@@ -77,6 +80,7 @@ export class Engine {
     this.resize();
     setupInput(this.canvas, this);
     this.keyboardManager.start();
+    this.fileService.attachDropTarget(document.body);
     window.addEventListener("resize", () => this.resize());
     this.loop();
   }
@@ -146,8 +150,7 @@ export class Engine {
 
     this.keyboardManager.registerShortcut("ctrl+s", (event) => {
       event.preventDefault();
-      const serialized = this.documentManager.save();
-      console.log(serialized);
+      this.fileService.saveCurrentDocument();
     });
 
     this.keyboardManager.registerShortcut("ctrl+z", () => {
@@ -168,16 +171,21 @@ export class Engine {
   }
 
   public load(jsonString: string) {
-    const document = this.documentManager.load(jsonString);
-    this.selection.setSelectedShape(null);
-    this.connectionPreview.cancel();
-    this.shapePreview.clear();
-    this.resizeState.activeHandle = null;
-    this.anchorState.setHoveredAnchor(null);
-    this.canvas.style.cursor = "default";
-    this.clipboardManager.clear();
-    this.commandManager.clearHistory();
-    return document;
+    try {
+      const document = this.documentManager.load(jsonString);
+      this.selection.setSelectedShape(null);
+      this.connectionPreview.cancel();
+      this.shapePreview.clear();
+      this.resizeState.activeHandle = null;
+      this.anchorState.setHoveredAnchor(null);
+      this.canvas.style.cursor = "default";
+      this.clipboardManager.clear();
+      this.commandManager.clearHistory();
+      return document;
+    } catch (error) {
+      console.error(error);
+      return null;
+    }
   }
 
   private syncSelectionWithScene() {
