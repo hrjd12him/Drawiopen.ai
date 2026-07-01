@@ -19,6 +19,7 @@ import { RectangleTool } from "./tools/RectangleTool";
 import { SelectionTool } from "./tools/SelectionTool";
 import { ToolManager } from "./tools/ToolManager";
 import { ClipboardManager } from "./clipboard/ClipboardManager";
+import { CopyNodeAction } from "./actions/CopyNodeAction";
 
 export class Engine {
   public readonly camera: Camera;
@@ -95,6 +96,8 @@ export class Engine {
   }
 
   private registerDefaultShortcuts() {
+    const copyAction = new CopyNodeAction(this);
+
     this.keyboardManager.registerShortcut("escape", () => {
       this.toolManager.cancelActiveTool();
       this.connectionPreview.cancel();
@@ -120,6 +123,10 @@ export class Engine {
       this.resizeState.activeHandle = null;
       this.anchorState.setHoveredAnchor(null);
       this.canvas.style.cursor = "default";
+    });
+
+    this.keyboardManager.registerShortcut("ctrl+c", () => {
+      copyAction.execute();
     });
 
     this.keyboardManager.registerShortcut("ctrl+z", () => {
